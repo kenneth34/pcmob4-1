@@ -5,6 +5,7 @@ import {
   View,
   TouchableOpacity,
   ActivityIndicator,
+  Button,
 } from "react-native";
 
 export default function App() {
@@ -14,12 +15,30 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [arrival, setArrival] = useState("");
   const BUSSTOP_URL = "https://arrivelah2.busrouter.sg/?id=83139";
-  const PSI_URL = "https://api.data.gov.sg/v1/environment/psi";
-  const [Refreshing, setRefreshing] = useState("");
+  const PSI_URL = "https://api.data.gov.sg/v1/environment/2-hour-weather-forecast";
+  const [refreshing, setRefreshing] = useState("");
   const [duration, setDuration] = useState("");
   const BusNo = 15;
   const BusStopNo = 83139;
+  const [psi, setPsi] = useState("Healthy");
 
+function loadPsiData () {
+  setLoading(true);
+  fetch(PSI_URL)
+  .then((response) => {
+    return response.json();
+  })
+  .then((responseData) => {
+    console.log("PSI data");
+    console.log(responseData);
+
+    const myPsi = responseData.api_info.filter()[0];
+    console.log("Original data")
+    setPsi(myPsi.api_info.status)
+    setLoading(false);
+  })
+}
+  
   function loadBusStopData() {
     setLoading(true);
     fetch(BUSSTOP_URL)
@@ -37,11 +56,11 @@ export default function App() {
         setLoading(false);
 
         const date = new Date(myBus.next.time);
-        const [hour, minutes, seconds] = [
-          ("0", +date.getHours()).slice(-2),
-          ("0", +date.getMinute()).slice(-2),
-          ("0", +date.getSeconds()).slice(-2),
-        ];
+        //const [hour, minutes, seconds] = [
+          //("0", +date.getHours()).slice(-2),
+          //("0", +date.getMinute()).slice(-2),
+          //("0", +date.getSeconds()).slice(-2),
+        //];
         setArrivalTime([hour, ":", minutes, ":", seconds]);
         setDuration(myBus.next2.duration_ms);
       });
@@ -54,12 +73,15 @@ export default function App() {
     //return `${minutes}:${(seconds < 10 ? "0" : "")}${seconds}`;
   };
  
-//const onRefresh = () => {
-  ///setRefreshing(true);
-  //setArrival(myBus.next.time);
-  //setDuration(myBus.next2.time);
-  //setRefreshing(false);
-//};
+const onRefresh = () => {
+  setRefreshing(true);
+  setArrival(myBus.next.time);
+  setDuration(myBus.next2.time);
+  setRefreshing(false);
+  return (loadBusStopData);
+};
+
+
 
   useEffect(() => {
     const interval = setInterval(loadBusStopData, 10000);
@@ -68,6 +90,10 @@ export default function App() {
 
   useEffect(() => {
     loadBusStopData();
+  }, []);
+
+  useEffect(() => {
+    loadPsiData();
   }, []);
 
   return (
@@ -82,9 +108,14 @@ export default function App() {
       <Text style={styles.arrivalTime}>
         {loading ? <ActivityIndicator size="large" color="blue" /> : duration}
       </Text>
-      <TouchableOpacity style={styles.button}>
+      <Text style={styles.info}>PSI:</Text>
+      <Text style={styles.arrivalTime}>
+        {loading ? <ActivityIndicator size="large" color="blue" /> : psi}
+      </Text>
+      <TouchableOpacity style={styles.button} refreshing= {refreshing} onRefresh={onRefresh}>
         <Text style={styles.buttonText}>Refresh!</Text>
       </TouchableOpacity>
+  
     </View>
   );
 }
